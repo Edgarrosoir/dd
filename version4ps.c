@@ -61,15 +61,16 @@ typedef char tPlateau[LARGEUR_PLATEAU + 1][HAUTEUR_PLATEAU + 1];
  ******************************/
 void initPlateau(tPlateau plateau); // Initialiser le plateau de jeu
 void dessinerPlateau(tPlateau plateau); // Afficher le plateau de jeu sur l'écran préalablement effacé
-void ajouterPomme(tPlateau plateau, int indexPomme);// Choisi de manière aléatoire une position à l’intérieur du plateau non déjà occupée ni par un pavé ni par le serpent et y place une pomme
+void ajouterPomme(tPlateau plateau, int indexPomme);// Choisir de manière aléatoire une position à l’intérieur du plateau non déjà occupée ni par un pavé ni par le serpent et y place une pomme
 void afficher(int x, int y, char c); // Afficher le caractère c à la position (x, y)
 void effacer(int x, int y); // Afficher un espace à la position (x, y)
 void dessinerSerpent(int lesX[], int lesY[], int taille); // Afficher à l’écran un à un les éléments du serpent dont les coordonnées sont fournies dans le tableau en paramètre
-void progresser(int lesX[], int lesY[], int *taille, char direction, tPlateau plateau, bool *collision, bool *pomme); // Calcule et affiche la prochaine position du serpent
-char calculerDirection(int serpentX, int serpentY, int pommeX, int pommeY, char directionPrecedente); // Calcule la prochaine direction
+void progresser(int lesX[], int lesY[], int *taille, char direction, tPlateau plateau, bool *collision, bool *pomme); // Calculer et afficher la prochaine position du serpent
+char calculerDirection(int serpentX, int serpentY, int pommeX, int pommeY, char directionPrecedente); // Calculer la prochaine direction
 void disable_echo(); // Éviter que les caractères utilisés pour diriger le serpent s’affichent à l’écran
 void enable_echo(); // Réactiver l'écho
 void gotoxy(int x, int y); // Positionner le curseur à un endroit précis
+int kbhit();
 
 /***********************
  * FONCTION PRINCIPALE *
@@ -307,15 +308,64 @@ void progresser(int lesX[], int lesY[], int *taille, char direction, tPlateau pl
     dessinerSerpent(lesX, lesY, *taille);
 }
 
+// Fonction pour vérifier si une position est un pavé
+bool estPave(int x, int y) {
+    for (int i = 0; i < NB_PAVES; i++) {
+        if (x >= lesPavesX[i] && x < lesPavesX[i] + 5 && y >= lesPavesY[i] && y < lesPavesY[i] + 5) {
+            return true;
+        }
+    }
+    return false;
+}
+
+// Modification de la fonction calculerDirection pour éviter les pavés
 char calculerDirection(int serpentX, int serpentY, int pommeX, int pommeY, char directionPrecedente) {
     int dx = pommeX - serpentX;
     int dy = pommeY - serpentY;
+    char nouvelleDirection;
 
     if (abs(dx) > abs(dy)) {
-        return (dx > 0) ? 'd' : 'q';
+        nouvelleDirection = (dx > 0) ? 'd' : 'q';
     } else {
-        return (dy > 0) ? 's' : 'z';
+        nouvelleDirection = (dy > 0) ? 's' : 'z';
     }
+
+    // Vérifier si la nouvelle direction mène à un pavé
+    int prochainX = serpentX;
+    int prochainY = serpentY;
+
+    switch (nouvelleDirection) {
+        case 'd': prochainX++; break;
+        case 'q': prochainX--; break;
+        case 's': prochainY++; break;
+        case 'z': prochainY--; break;
+    }
+
+    // Si la direction mène à un pavé, choisir une autre direction
+    if (estPave(prochainX, prochainY)) {
+        // Essayer les autres directions
+        if (nouvelleDirection == 'd' || nouvelleDirection == 'q') {
+            nouvelleDirection = (dy > 0) ? 's' : 'z';
+        } else {
+            nouvelleDirection = (dx > 0) ? 'd' : 'q';
+        }
+        // Recalculer les positions pour la nouvelle direction
+        prochainX = serpentX;
+        prochainY = serpentY;
+        switch (nouvelleDirection) {
+            case 'd': prochainX++; break;
+            case 'q': prochainX--; break;
+            case 's': prochainY++; break;
+            case 'z': prochainY--; break;
+        }
+        // Si la nouvelle direction mène également à un pavé
+        if (estPave(prochainX, prochainY)) {
+            // Inverser encore une fois
+            nouvelleDirection = (nouvelleDirection == 'd' || nouvelleDirection == 'q') ? ((dy > 0) ? 's' : 'z') : ((dx > 0) ? 'd' : 'q');
+        }
+    }
+
+    return nouvelleDirection;
 }
 
 void gotoxy(int x, int y) {
@@ -334,4 +384,24 @@ void enable_echo() {
     tcgetattr(STDIN_FILENO, &tty);
     tty.c_lflag |= ECHO;
     tcsetattr(STDIN_FILENO, TCSANOW, &tty);
+}
+
+int kbhit() {
+    struct termios oldt, newt;
+    int ch;
+    int oldf;
+    tcgetattr(STDIN_FILENO, &oldt);
+    newt = oldt;
+    newt.c_lflag &= ~(ICANON | ECHO);
+    tcsetattr(STDIN_FILENO, TCSANOW, &newt);
+    oldf = fcntl(STDIN_FILENO, F_GETFL, 0);
+    fcntl(STDIN_FILENO, F_SETFL, oldf | O_NONBLOCK);
+    ch = getchar();
+    tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
+    fcntl(STDIN_FILENO, F_SETFL, oldf);
+    if (ch != EOF) {
+        ungetc(ch, stdin);
+        return 1;
+    }
+    return 0;
 }
