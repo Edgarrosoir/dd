@@ -65,8 +65,8 @@ void ajouterPomme(tPlateau plateau, int indexPomme); // Ajouter une pomme au pla
 void afficher(int x, int y, char c); // Afficher le caractère c à la position (x, y)
 void effacer(int x, int y); // Afficher un espace à la position (x, y)
 void dessinerSerpent(int lesX[], int lesY[], int taille); // Afficher le serpent à l’écran
-void progresser(int lesX[], int lesY[], int *taille, char direction, tPlateau plateau, bool *collision, bool *pomme); // Calcule et affiche la prochaine position du serpent
-char calculerDirection(int serpentX, int serpentY, int pommeX, int pommeY, char directionPrecedente, tPlateau plateau); // Calcule la prochaine direction
+void progresser(int lesX[], int lesY[], int *taille, char *direction, tPlateau plateau, bool *collision, bool *pomme, int pommeX, int pommeY); // Calcule et affiche la prochaine position du serpent
+char calculerDirection(int serpentX, int serpentY, int pommeX, int pommeY, char directionPrecedente); // Calcule la prochaine direction
 void disable_echo(); // Désactiver l'écho des caractères
 void enable_echo(); // Réactiver l'écho des caractères
 void gotoxy(int x, int y); // Positionner le curseur à un endroit précis
@@ -104,8 +104,7 @@ int main() {
 
     // Boucle principale
     while (!collision && nbPommesMangees < NB_POMMES) {
-        direction = calculerDirection(lesX[0], lesY[0], lesPommesX[nbPommesMangees], lesPommesY[nbPommesMangees], direction,plateau);
-        progresser(lesX, lesY, &tailleSerpent, direction, plateau, &collision, &pommeMangee);
+        progresser(lesX, lesY, &tailleSerpent, &direction, plateau, &collision, &pommeMangee, lesPommesX[nbPommesMangees], lesPommesY[nbPommesMangees]);
 
         cpt++;
 
@@ -221,7 +220,7 @@ void dessinerSerpent(int lesX[], int lesY[], int taille) {
     afficher(lesX[0], lesY[0], TETE);
 }
 
-void progresser(int lesX[], int lesY[], int *taille, char direction, tPlateau plateau, bool *collision, bool *pomme) {
+void progresser(int lesX[], int lesY[], int *taille, char *direction, tPlateau plateau, bool *collision, bool *pomme, int pommeX, int pommeY) {
     effacer(lesX[*taille - 1], lesY[*taille - 1]);
 
     for (int i = *taille - 1; i > 0; i--) {
@@ -229,10 +228,13 @@ void progresser(int lesX[], int lesY[], int *taille, char direction, tPlateau pl
         lesY[i] = lesY[i - 1];
     }
 
+    // Calcul de la direction avant de mettre à jour la position
+    *direction = calculerDirection(lesX[0], lesY[0], pommeX, pommeY, *direction);
+
     // Calcul de la prochaine position en fonction de la direction
     int nextX = lesX[0];
     int nextY = lesY[0];
-    switch (direction) {
+    switch (*direction) {
         case 'z': nextY--; break;
         case 's': nextY++; break;
         case 'q': nextX--; break;
@@ -242,14 +244,14 @@ void progresser(int lesX[], int lesY[], int *taille, char direction, tPlateau pl
     // Vérification de la collision avec les pavés et ajustement de la direction si nécessaire
     if (plateau[nextX][nextY] == BORDURE) {
         // Essayer de trouver une nouvelle direction
-        char newDirection = direction;
-        if (direction == 'z' || direction == 's') {
+        char newDirection = *direction;
+        if (*direction == 'z' || *direction == 's') {
             if (plateau[lesX[0] - 1][lesY[0]] != BORDURE) {
                 newDirection = 'q';
             } else if (plateau[lesX[0] + 1][lesY[0]] != BORDURE) {
                 newDirection = 'd';
             }
-        } else if (direction == 'q' || direction == 'd') {
+        } else if (*direction == 'q' || *direction == 'd') {
             if (plateau[lesX[0]][lesY[0] - 1] != BORDURE) {
                 newDirection = 'z';
             } else if (plateau[lesX[0]][lesY[0] + 1] != BORDURE) {
@@ -258,12 +260,12 @@ void progresser(int lesX[], int lesY[], int *taille, char direction, tPlateau pl
         }
 
         // Mise à jour de la direction
-        direction = newDirection;
+        *direction = newDirection;
 
         // Recalcul de la prochaine position en fonction de la nouvelle direction
         nextX = lesX[0];
         nextY = lesY[0];
-        switch (direction) {
+        switch (*direction) {
             case 'z': nextY--; break;
             case 's': nextY++; break;
             case 'q': nextX--; break;
@@ -300,33 +302,6 @@ void progresser(int lesX[], int lesY[], int *taille, char direction, tPlateau pl
         lesY[0] = 1;
     }
 
-
-    // Téléportation via les portails (au centre des côtés)
-    if (lesX[0] == LARGEUR_PLATEAU / 2 && lesY[0] == 1){ // Portail haut
-        lesX[0] = LARGEUR_PLATEAU / 2;
-        lesY[0] = HAUTEUR_PLATEAU; // Téléportation en bas
-    } 
-    
-    else if (lesX[0] == LARGEUR_PLATEAU / 2 && lesY[0] == HAUTEUR_PLATEAU){ // Portail bas
-        lesX[0] = LARGEUR_PLATEAU / 2;
-        lesY[0] = 1; // Téléportation en haut
-    } 
-    
-    else if (lesX[0] == 1 && lesY[0] == HAUTEUR_PLATEAU / 2){ // Portail gauche
-        lesX[0] = LARGEUR_PLATEAU;
-        lesY[0] = HAUTEUR_PLATEAU / 2; // Téléportation à droite
-    } 
-    
-    else if (lesX[0] == LARGEUR_PLATEAU && lesY[0] == HAUTEUR_PLATEAU / 2){ // Portail droit
-        lesX[0] = 1;
-        lesY[0] = HAUTEUR_PLATEAU / 2; // Téléportation à gauche
-    }
-
-    if (lesX[0] == 0) lesX[0] = LARGEUR_PLATEAU;
-    if (lesX[0] > LARGEUR_PLATEAU) lesX[0] = 1;
-    if (lesY[0] == 0) lesY[0] = HAUTEUR_PLATEAU;
-    if (lesY[0] > HAUTEUR_PLATEAU) lesY[0] = 1;
-
     *collision = (plateau[lesX[0]][lesY[0]] == BORDURE || plateau[lesX[0]][lesY[0]] == CORPS);
     *pomme = (plateau[lesX[0]][lesY[0]] == POMME);
 
@@ -337,24 +312,15 @@ void progresser(int lesX[], int lesY[], int *taille, char direction, tPlateau pl
     dessinerSerpent(lesX, lesY, *taille);
 }
 
-char calculerDirection(int serpentX, int serpentY, int pommeX, int pommeY, char directionPrecedente, tPlateau plateau) {
+char calculerDirection(int serpentX, int serpentY, int pommeX, int pommeY, char directionPrecedente) {
     int dx = pommeX - serpentX;
     int dy = pommeY - serpentY;
 
-    char tentative = (abs(dx) > abs(dy)) ? ((dx > 0) ? 'd' : 'q') : ((dy > 0) ? 's' : 'z');
-    int nextX = serpentX, nextY = serpentY;
-    switch (tentative) {
-        case 'z': nextY--; break;
-        case 's': nextY++; break;
-        case 'q': nextX--; break;
-        case 'd': nextX++; break;
+    if (abs(dx) > abs(dy)) {
+        return (dx > 0) ? 'd' : 'q';
+    } else {
+        return (dy > 0) ? 's' : 'z';
     }
-
-    if (plateau[nextX][nextY] == BORDURE) {
-        // Si la direction optimale mène à une collision, changez-la
-        tentative = (tentative == 'z' || tentative == 's') ? (dx > 0 ? 'd' : 'q') : (dy > 0 ? 's' : 'z');
-    }
-    return tentative;
 }
 
 void gotoxy(int x, int y) {
