@@ -44,6 +44,7 @@
 #define BORDURE '#'
 #define VIDE ' '
 #define POMME '6'
+#define STOP 'a'
 
 // Coordonnées des pavés fixes
 int lesPavesX[NB_PAVES] = {3, 74, 3, 74, 38, 38};
@@ -67,9 +68,8 @@ void effacer(int x, int y); // Afficher un espace à la position (x, y)
 void dessinerSerpent(int lesX[], int lesY[], int taille); // Afficher le serpent à l’écran
 void progresser(int lesX[], int lesY[], int *taille, char *direction, tPlateau plateau, bool *collision, bool *pomme, int pommeX, int pommeY); // Calcule et affiche la prochaine position du serpent
 char calculerDirection(int serpentX, int serpentY, int pommeX, int pommeY, char directionPrecedente, tPlateau plateau); // Calcule la prochaine direction
-void disable_echo(); // Désactiver l'écho des caractères
-void enable_echo(); // Réactiver l'écho des caractères
 void gotoxy(int x, int y); // Positionner le curseur à un endroit précis
+int kbhit(); // Vérifier si une touche a été pressée
 
 /***********************
  * FONCTION PRINCIPALE *
@@ -84,6 +84,10 @@ int main() {
     int tailleSerpent = TAILLE;
     int nbPommesMangees = 0;
     int cpt = 0;
+    char touche;
+
+    clock_t begin = clock();
+
 
     // Initialisation du serpent
     for (int i = 0; i < tailleSerpent; i++) {
@@ -97,13 +101,16 @@ int main() {
     dessinerPlateau(plateau);
     ajouterPomme(plateau, nbPommesMangees);
     srand(time(NULL));
-    clock_t begin = clock();
+    
 
-    // Désactiver l'écho pour les entrées utilisateur
-    disable_echo();
+   while (!collision & nbPommesMangees < NB_POMMES) {
+        if (kbhit()) {
+            touche = getchar();
+            if (touche == STOP) {
+                break;
+            }
+        }
 
-    // Boucle principale
-    while (!collision && nbPommesMangees < NB_POMMES) {
         progresser(lesX, lesY, &tailleSerpent, &direction, plateau, &collision, &pommeMangee, lesPommesX[nbPommesMangees], lesPommesY[nbPommesMangees]);
 
         cpt++;
@@ -116,9 +123,6 @@ int main() {
         }
         usleep(ATTENTE);
     }
-
-    // Réactiver l'écho
-    enable_echo();
     gotoxy(1, HAUTEUR_PLATEAU + 2);
 
     printf("Nombre de déplacements : %d caractères.\n", cpt);
@@ -152,7 +156,6 @@ void initPlateau(tPlateau plateau) {
     plateau[1][HAUTEUR_PLATEAU / 2] = VIDE;
     plateau[LARGEUR_PLATEAU][HAUTEUR_PLATEAU / 2] = VIDE;
 
-
     for (int p = 0; p < NB_PAVES; p++) {
         for (int dx = 0; dx < 5; dx++) {
             for (int dy = 0; dy < 5; dy++) {
@@ -161,6 +164,7 @@ void initPlateau(tPlateau plateau) {
         }
     }
 }
+
 void dessinerPlateau(tPlateau plateau) {
     for (int j = 1; j <= HAUTEUR_PLATEAU; j++) {
         for (int i = 1; i <= LARGEUR_PLATEAU; i++) {
@@ -331,16 +335,22 @@ void gotoxy(int x, int y) {
     printf("\033[%d;%dH", y, x);
 }
 
-void disable_echo() {
-    struct termios tty;
-    tcgetattr(STDIN_FILENO, &tty);
-    tty.c_lflag &= ~ECHO;
-    tcsetattr(STDIN_FILENO, TCSANOW, &tty);
-}
-
-void enable_echo() {
-    struct termios tty;
-    tcgetattr(STDIN_FILENO, &tty);
-    tty.c_lflag |= ECHO;
-    tcsetattr(STDIN_FILENO, TCSANOW, &tty);
+int kbhit() {
+    struct termios oldt, newt;
+    int ch;
+    int oldf;
+    tcgetattr(STDIN_FILENO, &oldt);
+    newt = oldt;
+    newt.c_lflag &= ~(ICANON | ECHO);
+    tcsetattr(STDIN_FILENO, TCSANOW, &newt);
+    oldf = fcntl(STDIN_FILENO, F_GETFL, 0);
+    fcntl(STDIN_FILENO, F_SETFL, oldf | O_NONBLOCK);
+    ch = getchar();
+    tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
+    fcntl(STDIN_FILENO, F_SETFL, oldf);
+    if (ch != EOF) {
+        ungetc(ch, stdin);
+        return 1;
+    }
+    return 0;
 }
