@@ -66,7 +66,7 @@ void afficher(int x, int y, char c); // Afficher le caractère c à la position 
 void effacer(int x, int y); // Afficher un espace à la position (x, y)
 void dessinerSerpent(int lesX[], int lesY[], int taille); // Afficher le serpent à l’écran
 void progresser(int lesX[], int lesY[], int *taille, char *direction, tPlateau plateau, bool *collision, bool *pomme, int pommeX, int pommeY); // Calcule et affiche la prochaine position du serpent
-char calculerDirection(int serpentX, int serpentY, int pommeX, int pommeY, char directionPrecedente); // Calcule la prochaine direction
+char calculerDirection(int serpentX, int serpentY, int pommeX, int pommeY, char directionPrecedente, tPlateau plateau); // Calcule la prochaine direction
 void disable_echo(); // Désactiver l'écho des caractères
 void enable_echo(); // Réactiver l'écho des caractères
 void gotoxy(int x, int y); // Positionner le curseur à un endroit précis
@@ -229,7 +229,7 @@ void progresser(int lesX[], int lesY[], int *taille, char *direction, tPlateau p
     }
 
     // Calcul de la direction avant de mettre à jour la position
-    *direction = calculerDirection(lesX[0], lesY[0], pommeX, pommeY, *direction);
+    *direction = calculerDirection(lesX[0], lesY[0], pommeX, pommeY, *direction, plateau);
 
     // Calcul de la prochaine position en fonction de la direction
     int nextX = lesX[0];
@@ -242,19 +242,19 @@ void progresser(int lesX[], int lesY[], int *taille, char *direction, tPlateau p
     }
 
     // Vérification de la collision avec les pavés et ajustement de la direction si nécessaire
-    if (plateau[nextX][nextY] == BORDURE) {
-        // Essayer de trouver une nouvelle direction
+    if (plateau[nextX][nextY] == BORDURE || plateau[nextX][nextY] == CORPS) {
+        // Essayer de trouver une nouvelle direction en vérifiant toutes les directions possibles
         char newDirection = *direction;
         if (*direction == 'z' || *direction == 's') {
-            if (plateau[lesX[0] - 1][lesY[0]] != BORDURE) {
+            if (plateau[lesX[0] - 1][lesY[0]] != BORDURE && plateau[lesX[0] - 1][lesY[0]] != CORPS) {
                 newDirection = 'q';
-            } else if (plateau[lesX[0] + 1][lesY[0]] != BORDURE) {
+            } else if (plateau[lesX[0] + 1][lesY[0]] != BORDURE && plateau[lesX[0] + 1][lesY[0]] != CORPS) {
                 newDirection = 'd';
             }
         } else if (*direction == 'q' || *direction == 'd') {
-            if (plateau[lesX[0]][lesY[0] - 1] != BORDURE) {
+            if (plateau[lesX[0]][lesY[0] - 1] != BORDURE && plateau[lesX[0]][lesY[0] - 1] != CORPS) {
                 newDirection = 'z';
-            } else if (plateau[lesX[0]][lesY[0] + 1] != BORDURE) {
+            } else if (plateau[lesX[0]][lesY[0] + 1] != BORDURE && plateau[lesX[0]][lesY[0] + 1] != CORPS) {
                 newDirection = 's';
             }
         }
@@ -312,15 +312,44 @@ void progresser(int lesX[], int lesY[], int *taille, char *direction, tPlateau p
     dessinerSerpent(lesX, lesY, *taille);
 }
 
-char calculerDirection(int serpentX, int serpentY, int pommeX, int pommeY, char directionPrecedente) {
+char calculerDirection(int serpentX, int serpentY, int pommeX, int pommeY, char directionPrecedente, tPlateau plateau) {
     int dx = pommeX - serpentX;
     int dy = pommeY - serpentY;
 
-    if (abs(dx) > abs(dy)) {
-        return (dx > 0) ? 'd' : 'q';
-    } else {
-        return (dy > 0) ? 's' : 'z';
+    // Si la pomme est sur la même ligne que le serpent
+    if (dy == 0) {
+        if (dx > 0 && plateau[serpentX + 1][serpentY] != BORDURE && plateau[serpentX + 1][serpentY] != CORPS) {
+            return 'd'; // droite
+        } else if (dx < 0 && plateau[serpentX - 1][serpentY] != BORDURE && plateau[serpentX - 1][serpentY] != CORPS) {
+            return 'q'; // gauche
+        }
     }
+    // Si la pomme est sur la même colonne que le serpent
+    if (dx == 0) {
+        if (dy > 0 && plateau[serpentX][serpentY + 1] != BORDURE && plateau[serpentX][serpentY + 1] != CORPS) {
+            return 's'; // bas
+        } else if (dy < 0 && plateau[serpentX][serpentY - 1] != BORDURE && plateau[serpentX][serpentY - 1] != CORPS) {
+            return 'z'; // haut
+        }
+    }
+
+    // Choisir la direction en fonction de la distance à la pomme
+    if (abs(dx) > abs(dy)) {
+        if (dx > 0 && plateau[serpentX + 1][serpentY] != BORDURE && plateau[serpentX + 1][serpentY] != CORPS) {
+            return 'd'; // droite
+        } else if (dx < 0 && plateau[serpentX - 1][serpentY] != BORDURE && plateau[serpentX - 1][serpentY] != CORPS) {
+            return 'q'; // gauche
+        }
+    } else {
+        if (dy > 0 && plateau[serpentX][serpentY + 1] != BORDURE && plateau[serpentX][serpentY + 1] != CORPS) {
+            return 's'; // bas
+        } else if (dy < 0 && plateau[serpentX][serpentY - 1] != BORDURE && plateau[serpentX][serpentY - 1] != CORPS) {
+            return 'z'; // haut
+        }
+    }
+
+    // Si aucune direction n'est possible, garder la direction précédente
+    return directionPrecedente;
 }
 
 void gotoxy(int x, int y) {
