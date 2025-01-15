@@ -147,35 +147,11 @@ void initPlateau(tPlateau plateau) {
         plateau[1][j] = plateau[LARGEUR_PLATEAU][j] = BORDURE;
     }
 
-    // Dernière ligne (trou au milieu)
-    for (int i=1 ; i<=LARGEUR_PLATEAU ; i++){
-        if (i == LARGEUR_PLATEAU / 2) {
-            plateau[i][HAUTEUR_PLATEAU] = VIDE; // Trou au milieu
-        } 
-        else {
-            plateau[i][HAUTEUR_PLATEAU] = BORDURE;
-        }
-    }
+    plateau[LARGEUR_PLATEAU / 2][1] = VIDE;
+    plateau[LARGEUR_PLATEAU / 2][HAUTEUR_PLATEAU] = VIDE;
+    plateau[1][HAUTEUR_PLATEAU / 2] = VIDE;
+    plateau[LARGEUR_PLATEAU][HAUTEUR_PLATEAU / 2] = VIDE;
 
-    // Première colonne (trou au milieu)
-    for (int j=1 ; j<=HAUTEUR_PLATEAU ; j++){
-        if (j == HAUTEUR_PLATEAU / 2) {
-            plateau[1][j] = VIDE; // Trou au milieu
-        } 
-        else {
-            plateau[1][j] = BORDURE;
-        }
-    }
-
-    // Dernière colonne (trou au milieu)
-    for (int j=1 ; j<=HAUTEUR_PLATEAU ; j++){
-        if (j == HAUTEUR_PLATEAU / 2) {
-            plateau[LARGEUR_PLATEAU][j] = VIDE; // Trou au milieu
-        } 
-        else {
-            plateau[LARGEUR_PLATEAU][j] = BORDURE;
-        }
-    }
 
     for (int p = 0; p < NB_PAVES; p++) {
         for (int dx = 0; dx < 5; dx++) {
@@ -185,7 +161,6 @@ void initPlateau(tPlateau plateau) {
         }
     }
 }
-
 void dessinerPlateau(tPlateau plateau) {
     for (int j = 1; j <= HAUTEUR_PLATEAU; j++) {
         for (int i = 1; i <= LARGEUR_PLATEAU; i++) {
