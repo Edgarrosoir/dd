@@ -186,21 +186,6 @@ void calculerDistanceOptimale(int serpentX, int serpentY, int pommeX, int pommeY
     int distanceViaBas = abs(serpentX - portailBasX) + abs(serpentY - portailBasY) +
                          abs(portailHautX - pommeX) + abs(portailHautY - pommeY)-1;
 
-    // Distance direct avec les pavées
-    /*
-    il faut que:
-    si pommeX<PAVE[x]<serpentX OU pommeX>PAVE[x]>serpentX faire
-        si pommeY<PAVE[x]<serpentX OU pommeY>PAVE[x]>serpentX faire
-            nouvelle mesure
-        fin faire
-    fin faire
-    
-    nouvelle mesure:
-    De quel côté ou comment contourner le pave ?
-    Est-ce que c'est optimal ?  
-    */
-
-
     // Initialisation de la distance minimale
     int distanceMin = distanceDirecte;
     *nouvelleX = pommeX;
